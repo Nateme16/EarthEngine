@@ -1,0 +1,116 @@
+var geometry = /* color: #d63000 */ee.Geometry({
+      "type": "GeometryCollection",
+      "geometries": [
+        {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -70.99365234375,
+                43.98886243884903
+              ],
+              [
+                -74.058837890625,
+                40.693134153308065
+              ],
+              [
+                -69.54345703125,
+                40.41767833585549
+              ],
+              [
+                -68.5107421875,
+                43.99676629896825
+              ]
+            ]
+          ],
+          "evenOdd": true
+        },
+        {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -69.598388671875,
+                40.949212595680855
+              ],
+              [
+                -68.719482421875,
+                42.30413728804525
+              ],
+              [
+                -70.72998046875,
+                43.64641997219827
+              ],
+              [
+                -72.18017578125,
+                41.54395395529832
+              ],
+              [
+                -71.74072265625,
+                40.84125214986712
+              ]
+            ]
+          ],
+          "geodesic": true,
+          "evenOdd": true
+        }
+      ],
+      "coordinates": []
+    }),
+    geometry2 = /* color: #d63000 */ee.Geometry.MultiPoint(),
+    geometry3 = /* color: #98ff00 */ee.Geometry.Polygon(
+        [[[-69.642333984375, 41.09012571489979],
+          [-69.7412109375, 43.50315226268816],
+          [-70.42236328125, 43.70998509366628],
+          [-70.68603515625, 43.455320621060594],
+          [-72.191162109375, 41.56039723650659],
+          [-72.103271484375, 40.76640711705034]]]);
+          
+
+
+
+var start = ee.Date('2012-01-01');
+var finish = ee.Date('2016-09-15');
+
+var imageCollection = ee.ImageCollection("LANDSAT/LC8_SR")
+  .filterBounds(geometry)
+  .filterDate(start, finish)
+  .filter(ee.Filter.lt('CLOUD_COVER', 10))
+  //.filter(ee.Filter.lt('bands:B7, 200))
+  .sort('CLOUD_COVER', true);
+  
+var median= imageCollection.reduce('median');
+
+var vizParams = {
+  bands: ['B2_median','B1_median', 'B5_median'],
+  max: [1000],
+  min: [0],
+  gamma:[1]
+};
+
+//Map.addLayer(median,vizParams,'try1');
+
+var vizParams2 = {
+  bands: ['B1', 'B3', 'B5'],
+  max: [30000],
+  min: [0],
+  gamma:[3]
+};
+//Map.addLayer(imageCollection,vizParams2);
+
+print(imageCollection)
+print(median);
+
+
+//mask for water
+// Load or import the Hansen et al. forest change dataset to get nice water mask
+var hansenImage = ee.Image('UMD/hansen/global_forest_change_2015');
+
+// Select the land/water mask.
+var datamask = hansenImage.select('datamask');
+var mask = datamask.gt(1);// keep just the water
+var maskedmedian= median.updateMask(mask)
+
+Map.addLayer(maskedmedian, vizParams, 'masked');
+
+//band math...
